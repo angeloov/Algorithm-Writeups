@@ -1,0 +1,635 @@
+
+%----------------------------------------------------------------------------------------
+%	CHAPTER 1
+%----------------------------------------------------------------------------------------
+
+\chapterimage{chapter_head_2.pdf} % Chapter heading image
+
+\chapter{Greedy algorithms}
+
+\section{Warmup problems}
+\subsection{C. Racing}
+\url{https://codeforces.com/contest/2110/problem/C} \\
+
+We have a drone that starts at height $h_0 = 0$ and it traverses obstacles for $i = 1..n$ so its height has to change to stay between $l_i, r_i$, so we have the constraint
+\begin{center}
+    $l_i \leq h_i \leq r_i$.
+\end{center}
+
+We are also given an array $d_i = h_i - h_{i-1} = 0\ \lor\ 1$ that represent the deltas in heights of the drone; it is eiher 0 or 1 so this means that the height remains the same or increases by 1: it's a non-decreasing function. This array $d_i$ is not complete but has holes in it represented by -1s. The goal is to fill the holes with 0 or 1 s.t. the drone has a height $l_i \leq h_i \leq r_i\ \forall i=1..n$.
+
+\subsubsection{Approach 1}
+One could try to increment $h_i$ at each step $i$ if possible by keeping $h_i \leq \min_{i \in [i..n]}(r_i)$ but this turns out to be incorrect because if we have input $d= [-1, 1]$ and an array of constraints $(l_i,r_i)$ like $[(0,1), (0,1)]$, then we would increase by 1 at the first step because $\min_{i \in [1..2]}(r_i) = 1$, making $d' = [1, 1]$ $\implies$ $h_2 =d'_1 + d'_2 = 2 > r_2 =1$ and this violates the constraint.
+
+\subsubsection{Approach 2}
+Let's consider another approach: suppose we are in the middle of the race at step $j$. At this step we have height $h_j$ and how did we get to this height? By summing the $d_i \neq -1$ we were given and by summing the undetermined $d_i$ (those $= -1$). So at each step:
+\begin{itemize}
+    \item While the current height $< l_i$ we transform the preceding $-1$s and transform them into $1$s.
+    \item While the (current height + no. of $-1$s seen until now) $> r_i$ we transform the preceding $-1$s into $0$s. 
+\end{itemize}
+
+
+So in short, what we do is $\forall i$ we consider the current $h_i$. If we are too low, we substitute $-1$s with $1$. If (height + \# of $-1$s) $> r_i$ we are too high, this means that some of the $-1$s need to be 0s because if they were all 1s we would have $h_i = \sum_{j=1}^{i}{d_j} > r_i$ which violates the constraint. So it has to be that those -1s have to be transformed into 0s. If we can't do this because we haven't got enough $-1$s we output that it's impossible.
+
+\begin{minted}{c++}
+#include <bits/stdc++.h>
+using namespace std;
+using ll=long long;
+#define debug(x) cout << #x << " = " << x << '\n';
+#define vdebug(a) cout << #a << " = "; for(auto x: a) cout << x << " "; cout << '\n';
+ 
+void test_case() {
+  ll n; cin >> n;
+  vector<ll> d(n);
+  for (ll &x : d) cin >> x;
+  vector<ll> l(n), r(n);
+ 
+  for (ll i = 0; i < n; i++)
+    cin >> l[i] >> r[i];
+  
+  vector<ll> indices;
+  ll height = 0; // the cumulative height
+  for (ll i = 0; i < n; i++) {
+    if (d[i] == -1)  {
+      indices.push_back(i);
+    } else {
+      height += d[i];
+    }
+ 
+    while (height < l[i]) {
+      if (indices.empty()) {
+        cout << "-1\n";
+        return;
+      }
+ 
+      d[indices.back()] = 1;
+      height++;
+      indices.pop_back();
+    }
+ 
+    while (height + indices.size() > r[i]) {
+      if (indices.empty()) {
+        cout << "-1\n";
+        return;
+      }
+ 
+      d[indices.back()] = 0;
+      indices.pop_back();
+    }
+  }
+ 
+  for (ll x : d) {
+    cout << max(0LL, x) << " ";
+  }
+  cout << endl;
+}
+ 
+int32_t main() { /* Omitted for brevity */ }
+\end{minted}
+
+\subsection{C. You Soared Afar With Grace}
+\url{https://codeforces.com/problemset/problem/2084/C} \\
+
+We are given two permutations $a$ and $b$ and we are asked to make them so that a and b are reverses of each other. We can do the operation
+\begin{center}
+    swap($a_i$, $a_j$) \\
+    swap($b_i$, $b_j$)
+\end{center}
+where $1 \leq i,j \leq n$ and $i \neq j$ at most $n$ times. The problem asks if it is possbile to make such a and b and if it's impossible to output $-1$.
+
+What we do is observing that each pair ($a_i$, $b_i$) has to have a corresponding ($b_i$, $a_i$) for this to work. The thing is 
+
+\begin{minted}{C++}
+#include <bits/stdc++.h>
+using namespace std;
+using ll=long long;
+#define debug(x) cout << #x << " = " << x << '\n';
+#define vdebug(a) cout << #a << " = "; for(auto x: a) cout << x << " "; cout << '\n';
+#define x first
+#define y second
+
+void test_case() {
+  ll n; cin >> n;
+  vector<pair<ll, ll>> a(n);
+
+  for (ll i = 0; i < n; i++) cin >> a[i].x;
+  for (ll i = 0; i < n; i++) cin >> a[i].y;
+
+  map<pair<ll, ll>, ll> pos;
+  for (ll i = 0; i < n; i++) 
+    pos[{a[i].x, a[i].y}] = i;
+
+  vector<pair<ll, ll>> ans;
+  for (ll i = 0; i < n; i++) {
+    ll new_pos_for_brother = n - 1 - i; 
+    ll pos_of_brother = pos[{a[i].y, a[i].x}];
+
+    if (a[i].x == a[i].y) {
+      pos_of_brother = i;
+      new_pos_for_brother = n / 2;
+    }
+    
+    if (pos_of_brother != new_pos_for_brother) {
+      ans.push_back({pos_of_brother, new_pos_for_brother});
+
+      swap(a[pos_of_brother], a[new_pos_for_brother]);
+      swap(pos[a[pos_of_brother]], pos[a[new_pos_for_brother]]);
+    }
+  }
+  
+  bool flag = 1;
+  for (ll i = 0; i < n; i++) {
+    flag &= (a[i].x == a[n-1-i].y);
+  }
+
+  if (!flag) {
+    cout << "-1\n";
+    return;
+  }
+
+  cout << ans.size() << endl;
+  for (auto el : ans) 
+    cout << el.x + 1 << " " << el.y + 1 << endl;
+}
+
+int32_t main() { /* Omitted for brevity */ }
+\end{minted}
+
+\subsection{2034C - Trapped in the Witch's Labyrinth}
+\url{https://codeforces.com/problemset/problem/2034/C} \\
+
+Here what we do is build a graph and connect those nodes that have a path to the exit of the maze. We represent the exit as a separate node: the exit node. Then, we color red the nodes that are linked to the exit node, and white the ones that don't have a path to the exit. The answer will be the no. of the white nodes = $n \times m -$ (no. of red nodes).
+
+\begin{minted}{c++}
+#include <bits/stdc++.h>
+using namespace std;
+using ll=long long;
+#define debug(x) cout << #x << " = " << x << '\n';
+#define vdebug(a) cout << #a << " = "; for(auto x: a) cout << x << " "; cout << '\n';
+
+class Graph {
+public:
+  map<ll, vector<ll>> adj_list;
+  map<ll, bool> visited;
+  map<ll, bool> node_label; // 0 = white, 1 = red
+  
+  void insert_node(ll x) { 
+    if (adj_list.count(x) == 0) {
+      adj_list[x] = {};
+    }
+  }
+
+  void add_neighbour(ll x, ll neigh) {
+    adj_list[x].push_back(neigh);
+  }
+
+  void print() {
+    for (auto p : adj_list) {
+      cout << "" << p.first << ": [ "; 
+      for (ll node : p.second) cout << node << " ";
+      cout << "]\n";
+    }
+  }
+
+  bool dfs(ll node) {
+    if (node == 0) return true;
+    visited[node] = true;
+
+    for (ll n : adj_list[node]) {
+      bool neigh_is_red = 0;
+      if (visited.count(n) == 0) { // v.visited == false
+        neigh_is_red = dfs(n);
+      } 
+      
+      if (neigh_is_red || (visited[n] && node_label[n] == 1)) {
+        node_label[node] = 1;
+        return true;
+      } 
+    }
+
+    return false;
+  }
+}; 
+
+void test_case() {
+  ll n, m; cin >> n >> m;
+  Graph g;
+  g.insert_node(0);
+
+  vector<pair<ll, ll>> int_mark_positions;
+
+  // Let's create a graph and connect those nodes that are linked to the exit node.
+  // Then, let's color red the nodes that are linked to the exit, and white the others.
+  // The answer will be the no. of the white nodes = n * m - (no. of red nodes)
+  for (ll y = 0; y < n; y++) {
+    for (ll x = 0; x < m; x++) {
+      char c; cin >> c;
+      ll nx = x, ny = y; // coordinates of the neighbor pointed by the direction
+
+      if (c == 'U') ny--;
+      else if (c == 'L') nx--;
+      else if (c == 'R') nx++;
+      else if (c == 'D') ny++;
+
+      ll node_num = y * m + x + 1;
+      if (nx < 0 || ny < 0 || nx >= m || ny >= n) {
+        // this node is linked to the exit node.
+        g.add_neighbour(node_num, 0);
+      } else if (c == 'U' || c == 'L' || c == 'R' || c == 'D') {
+        g.add_neighbour(node_num, ny * m + nx + 1);
+      } else {
+        int_mark_positions.push_back({x, y});
+      }
+    }
+  }
+
+  for (auto [node, _] : g.adj_list) {
+    g.dfs(node);
+  }
+
+  ll red_nodes = 0;
+  for (auto [key, v] : g.node_label) {
+    if (v) red_nodes++;
+  }
+
+  const ll mx = n * m;
+  for (auto [x, y] : int_mark_positions) {
+    vector<pair<ll, ll>> pos = {{x, y-1}, {x, y+1}, {x-1, y}, {x+1, y}};
+    vector<pair<ll, ll>> to_process;
+
+    copy_if(pos.begin(), pos.end(), back_inserter(to_process), [n, m](const auto &point) {
+      auto [x, y] = point;
+      return x >= 0 && x < m && y >= 0 && y < n;
+    });
+
+    bool f = 1;
+    for (auto [x, y] : to_process) {
+      ll neigh_pos = y * m + x + 1;
+      f &= g.node_label[neigh_pos];
+    }
+
+    if (f) red_nodes++;
+  }
+
+  cout << n * m - red_nodes << endl;
+}
+
+int32_t main() { /* Omitted for brevity */ }
+\end{minted}
+
+
+\subsection{2014D - Robert Hood and Mrs Hood}
+\url{https://codeforces.com/problemset/problem/2014/D} \\ 
+La soluzione è quella di creare degli array di frequenze in base alle $l_i$, $r_i$ lette. Quindi avremo due vettori $o[]$, $c[]$ che contano il numero di aperture, o chiusure rispettivamente, al giorno $i$. Quindi, facciamo le prefix sum degli array e ciò ci apre la possibilità di ottenere quanti jobs ci sono tra $i$ e $i-d$ facendo 
+\begin{equation}
+    \quad \quad \text{\# di jobs nell'intervallo} [i - d..i] = o[i] - c[i-d].
+\end{equation}
+
+\begin{minted}{c++}
+#include <bits/stdc++.h>
+using namespace std;
+using ll=long long;
+#define debug(x) cout << #x << " = " << x << '\n';
+#define vdebug(a) cout << #a << " = "; for(auto x: a) cout << x << " "; cout << '\n';
+typedef vector<ll> vi;
+typedef pair<ll, ll> pi;
+
+void test_case() {
+  ll n, d, k; cin >> n >> d >> k;
+  vi o(n+1), c(n+1);
+  for (ll i = 0; i < k; i++) {
+    ll a, b; cin >> a >> b;
+    o[a]++;
+    c[b]++;
+  }
+
+  for (ll i = 0; i < n; i++) o[i+1] += o[i];
+  for (ll i = 0; i < n; i++) c[i+1] += c[i];
+
+  ll mx = 0, mn = LLONG_MAX;
+  ll brother, mother;
+  for (ll i = d; i <= n; i++) {
+    ll curr = o[i] - c[i-d];
+
+    if (curr > mx) mx = curr, brother = i-d+1;
+    if (curr < mn) mn = curr, mother = i-d+1;
+  }
+
+  cout << brother << " " << mother << "\n";
+}
+
+int32_t main() { /* Omitted for brevity */ }
+\end{minted}
+
+\subsection{E - Kirei Attacks the Estate}
+\url{https://codeforces.com/problemset/problem/2114/E} \\
+We define two functions $f$, $g$ like so, where $f(v)$ is the maximum alternating sum for node $v$.
+\begin{equation}
+\begin{matrix}
+    f(v) = \max(a_v, a_v - g(p_v)) \\ 
+    g(v) = \min(a_v, a_v - f(p_v))
+\end{matrix}
+\end{equation}
+
+In the end $f$ and $g$ are represent the same expression just negated and include the $\min$, $\max$ operators so that we can maximize the overall sum. 
+
+By expanding 3 times we get,
+\begin{align*}
+    f(v) &= \max\Big(a_v,\, a_v - \big(\min\big(a_{p_v},\, a_{p_v} - \max(a_{p_{p_v}},\, a_{p_{p_v}} - g(p_{p_v}))\big)\big)\Big)\\
+    &= \max\Big(a_v,\, a_v + \min\big(-a_{p_v},\, -a_{p_v} + \max(a_{p_{p_v}},\, a_{p_{p_v}} - g(p_{p_{p_v}}))\big)\Big)
+\end{align*}
+
+so we end up with a sequence like,
+\begin{align*}
+    a_v - a_{p_v} + a_{p_{p_v}} - \dots 
+\end{align*}
+where we want to maximize the positive terms and minimize the negative ones.
+
+\begin{obs}
+    If you pay attention closely to the formula you can see that 
+    \begin{equation}
+        -g(v) = \min(-a_v, -a_v + f(p_v))
+    \end{equation}
+    is trying to choose between something negative and something negative plus something $\geq 0 $. This is redundant, so we can just re-define $g$ as
+    \begin{equation}
+    \begin{matrix}
+        -g(v) = -a_v + f(p_v) \\
+        g(v) = a_v - f(p_v) 
+    \end{matrix}
+    \end{equation}
+
+    and thus we could change the corresponding expr in the code below.
+
+    So expanding and substituting we get the expression,
+    \begin{equation}
+        \max\Big(a_v, a_v - a_{p_v} + \max\big(a_{p_{p_v}}, a_{p_{p_v}} - g(p_{p_{p_v}}) \big) \Big).
+    \end{equation}
+\end{obs}
+
+\begin{obs}
+    Takeaway: when you have an alternating sum such as
+    \begin{equation}
+        a -b+c-d+\dots
+    \end{equation}
+    you maximise the $\geq 0$ terms and minimize the $\leq 0$ terms.
+    This was done by creating two arrays, f and g and storing two expressions, first the positive one and then the negative one.
+\end{obs}
+
+\begin{minted}{c++}
+#include <bits/stdc++.h>
+using namespace std;
+using ll=long long;
+#define debug(x) cout << #x << " = " << x << '\n';
+#define vdebug(a) cout << #a << " = "; for(auto x: a) cout << x << " "; cout << '\n';
+typedef vector<ll> vi;
+typedef pair<ll, ll> pi;
+
+class Tree {
+public:
+  map<ll, vi> adj_list;
+  vi visited;
+  vi f, g, a;
+
+  Tree(ll n, vi& a) {
+    visited.resize(n+1, 0);
+    f.resize(n+1, 0);
+    g.resize(n+1, 0);
+    this->a = a;
+
+    f[1] = g[1] = a[1];
+  }
+
+  void add_node(ll u, ll v) {
+    adj_list[u].push_back(v);
+    adj_list[v].push_back(u);
+  }
+
+  void print() {
+    for (auto k : adj_list) {
+      cout << k.first << ": ";
+      for (ll n : k.second) {
+        cout << n << " ";
+      }
+
+      cout << endl;
+    }
+  }
+
+  void dfs(ll node, ll parent) {
+    visited[node] = 1;
+
+    if (node != 1) {
+      f[node] = max(a[node], a[node] - g[parent]);
+      g[node] = min(a[node], a[node] - f[parent]);
+      // or: g[node] = a[node] - f[parent];
+    }
+
+    for (ll n : adj_list[node]) {
+      if (!visited[n]) 
+        dfs(n, node);
+    }
+  }
+};
+
+void test_case() {
+  ll n; cin >> n;
+  vi a(n+1); for (ll i = 1; i <= n; i++) cin >> a[i];
+
+  Tree t(n, a);
+
+  for (ll i = 0; i < n - 1; i++) {
+    ll a, b;
+    cin >> a >> b;
+
+    t.add_node(a,b);
+  }
+
+  t.dfs(1, 1);
+  for (ll i = 1; i <= n; i++) cout << t.f[i] << " ";
+  cout << "\n";
+}
+
+int32_t main() {
+  ios_base::sync_with_stdio(0); cin.tie(0);
+
+  int t;
+  cin >> t;
+  while (t--) {
+    test_case();    
+  }
+}
+\end{minted}
+
+
+
+\section{Binary search}
+
+\subsection{Christmas lights}
+\url{https://training.olinfo.it/task/ois_lights}
+\\
+
+The problem gives us a strip of Christmas lights of length $n$, represented as an integer array. We're asked to find the minimum length of a contiguous subarray that contains all numbers in the range $[0, c-1]$, where $c$ is given.
+
+To solve this, we can perform a binary search on the answer—i.e., on the length of the subarray. This approach is valid because of the following observation:
+
+If there exists a valid subarray of length $x$ that contains all required numbers, then any subarray of length $x+1$ (that contains the same elements and possibly more) can also be valid. That is, the property of being valid is monotonic with respect to length:
+
+$$ x \text{ valid}  \implies x+1 \text{ valid} $$
+
+This monotonicity allows us to apply binary search over possible subarray lengths. For each candidate length, we can check using a sliding window whether there exists a subarray of that length that includes all numbers from $0$ to $c-1$.
+
+In order to check there exists a valid subarray of length $sz$, we use the following observation
+\begin{obs}
+    The variant when we slide the window is that we decrease the frequency of the left end element just removed and increase the frequency of the new element added. To determine whether the current window is valid, we keep track of how many of the required values in $[0, c - 1]$ are still missing from the window (this can be done in $O(1)$). If the number of missing values is equal to 0 then the window is valid and we return true.
+\end{obs}
+
+The complexity is
+$$ O(\log n) \cdot O(n)$$.
+\begin{minted}{c++}
+void test_case() {
+  ll n, c; cin >> n >> c;
+  vi a(n), freq(c);
+  for (ll &x : a) cin >> x;
+
+  // Given the size of the window, slide it and output if its valid.
+  auto valid = [&](ll sz) {
+    vi freq(c);
+    bool valid = 1;
+    ll missing = 0; // # of spots in freq where freq[i] == 0.
+
+    for (ll i = 0; i < sz; i++) freq[a[i]]++;
+ 
+    for (ll f : freq) {
+      valid &= (f > 0);
+      if (f == 0) missing++;
+    }
+    
+    if (valid) return true;
+
+    for (ll i = 1; i < n - sz && !valid; i++) {
+      
+      // Remove one element from the window
+      freq[a[i-1]]--;
+      if (freq[a[i-1]] == 0) missing++;
+      
+      // Add one element to the window
+      if (freq[a[i+sz-1]] == 0) missing--;
+      freq[a[i+sz-1]]++;
+      
+      // If we have all the numbers in [0..C-1] in the window 
+      // then we return true
+      if (missing == 0) valid = 1;
+    }
+
+    return valid;
+  };
+
+  ll l = c, r = n;
+  ll mn = LLONG_MAX; // Minimal subarray length
+  while (l <= r) {
+    ll mid = (l + r) / 2;
+
+    if (valid(mid)) {
+      mn = min(mn, mid);
+      r = mid - 1;
+    } else {
+      l = mid + 1;
+    }
+  }
+
+  cout << mn << endl;
+}
+\end{minted}
+
+\subsection{Save the barrels}
+\url{https://training.olinfo.it/task/ois_butoaie}\\ 
+
+There's no particular contraints on $P$ and $Q$ i.e. it can be $P\ \substack{< \\ = \\ >}\  Q$; so what we do is assuming $P > Q$, if this is not the case we swap $P$ and $Q$.
+
+What we know is we have an array $V[]$ on which we can use, every day, $K$ diffusers of power $P$ and $N - K$ of power $Q$. After a certain number of days we wanna have all $V_i = 0$. So this means subtracting a certain number of $P$s and $Q$s from $V_i$.
+$$V_i - P \cdot d_i - Q \cdot b_i = 0$$
+
+Here $d_i$, $b_i$ are the number of diffusers of power $P$ and $Q$ respectively we use on day $i$. 
+
+\begin{idea}
+    Let $x$ = no. of days to use the available diffusers so that we make all $V_i = 0$. Then let's binary search on $x$.
+\end{idea}
+
+Note that it has to be that $b_i + d_i = x\ \forall i$.
+
+From the two equations we just shown we get
+$$ V_i - P \cdot d_i - Q \cdot b_i = 0 $$
+$$ V_i - P \cdot d_i - Q \cdot (x - d_i) = 0$$
+$$ d_i = \ceil[\Bigg]{\frac{V_i - Qx}{P - Q}} $$
+
+We take the ceiling of the result just because $d_i$ could be decimal and we can't use, say, half a diffuser.
+
+Then we make the following observations,
+
+\begin{gather*}
+\underbrace{\sum_i d_i}_{\text{\# of strong diffusers we want to use}} 
+\leq 
+\underbrace{K \cdot x}_{\text{\# of strong diffusers available}}
+\\
+\underbrace{d_i}_{\text{\# of diffusers used on day } i} \leq x
+\end{gather*}
+
+and we notice that if $V_i \leq Qx$ (i.e. we may use only weak diffusers to make $V_i = 0$), so we don't need to calculate the value of $d_i$ (= no. of strong diffusers needed to make $V_i = 0$).
+
+\begin{minted}{c++}
+#include <bits/stdc++.h>
+using namespace std;
+using ll=long long;
+#define debug(x) cout << #x << " = " << x << '\n';
+#define vdebug(a) cout << #a << " = "; for(auto x: a) cout << x << " "; cout << '\n';
+typedef vector<ll> vi;
+typedef pair<ll, ll> pi;
+
+void test_case() {
+  ll n, k, p, q; cin >> n >> k >> p >> q;
+  vi a(n);
+  for (ll &x : a) cin >> x;
+
+  ll nstrong = k, nweak = n - k;
+  
+  if (p < q) {
+    swap(p, q);
+    swap(nstrong, nweak);
+  }
+
+  // Is it possible to complete the task in a certain amount of days?
+  auto valid = [&](ll days) -> bool {
+    ll sumd = 0;
+
+    for (ll &v : a) {
+      if (v <= q * days) continue;
+      
+      ll d = ceil((long double)(v - q * days) / (p - q));
+
+      if (d > days) return false;
+      sumd += d;
+    }
+
+    return sumd <= nstrong * days;
+  };
+
+  ll l = 0, r = 1e12; 
+  
+  while (l <= r) {
+    ll mid = (l + r) / 2;
+
+    if (valid(mid)) {
+      r = mid - 1; 
+    } else {
+      l = mid + 1;
+    }
+  }
+
+  cout << r + 1 << endl;
+}
+
+int32_t main() {
+  ios_base::sync_with_stdio(0); cin.tie(0);
+  test_case();
+}
+\end{minted}
