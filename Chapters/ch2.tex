@@ -2,9 +2,10 @@
 \chapter{Dynamic programming}
 
 \subsection{A. Gellyfish and Flaming peony}
+\begin{sloppypar}
 \url{https://codeforces.com/problemset/problem/2115/A} 
-\\
-\\
+\end{sloppypar}
+
 It can be shown that ultimately all elements become 
 $$ G = \gcd(a_1, a_2, \ldots, a_n). $$
 \begin{obs}
@@ -122,7 +123,9 @@ int32_t main() {
 \end{minted}
 
 \subsection{Book shop}
-\url{https://cses.fi/problemset/task/1158} \\
+\begin{sloppypar}
+\url{https://cses.fi/problemset/task/1158}
+\end{sloppypar}
 
 This problem is equivalent to the classical \textbf{knapsack problem}. This problem comes down to analysing 2 cases only:
 \\
@@ -151,7 +154,9 @@ where we define dp[$i$][$j$] as the maximum number of pages we can buy with $j$ 
 
 
 \subsection{Counting Towers}
-\url{https://cses.fi/problemset/task/2413} \\
+\begin{sloppypar}
+\url{https://cses.fi/problemset/task/2413}
+\end{sloppypar}
 
 We distinguish between type 1 towers, and type 2. Type 1 towers have the the top two cells connected, while type 2 towers have the top two cells that are part of different blocks.
 
@@ -217,7 +222,145 @@ void test_case() {
 }
 \end{minted}
 
-\subsection{Coin combinations I \&\& II}
-\url{https://cses.fi/problemset/task/1635}, \url{https://cses.fi/problemset/task/1636} \\
+\section{Constructing permutations and combinations}
 
-The first problem asks us to calculate all the distinct \textit{permutations} of a set of coins to produce a certain sum of money $x$.
+\subsection{Coin combinations I \&\& II: swapping two loops can change the result!}
+\begin{sloppypar}
+\url{https://cses.fi/problemset/task/1635}, \url{https://cses.fi/problemset/task/1636} 
+\end{sloppypar}
+
+\subsubsection{Coin combinations I}
+The first problem asks us to calculate all the distinct \textit{permutations} of a set of coins to produce a certain sum of money $x$. 
+\begin{equation}
+    \text{dp}[i] = \text{\# of permutations of coins that sum up to amount } i.
+\end{equation}
+
+\begin{minted}{c++}
+void test_case() {
+  ll n, x; cin >> n >> x;
+  vector<ll> c(n);
+  vector<ll> dp(x+1, 0);
+  for (auto &x : c) cin >> x;
+
+  dp[0] = 1;
+
+  for (ll i = 1; i <= x; i++) {
+    for (ll coin : c) {
+      if (i - coin >= 0)
+        dp[i] += (dp[i - coin] % mod);
+    }
+  }
+  
+  cout << (dp[x] % mod) << endl;
+}
+
+\end{minted}
+
+The approach we take is iterating through the amounts $i$ ($1 \leq i \leq x$) and then trying all the possible coins to make that amount. If we want to make amount $i$, there are $\text{dp}[i - c]$ ways of doing that, where $c$ is a coin in the set that we use to complete the permutation. 
+That is we are constructing all the permutations of this kind,
+
+\begin{equation}
+    (c, (\text{all the permutations that sum up to } i - c \text{ go here}))
+\end{equation}
+
+
+\subsubsection{Coin combinations II}
+
+Here what's asked is to count the number of \textit{combinations} to make an amount $x$ with a given input set of coins. 
+
+The approach we take is to select a coin $c$, and from here compute
+\begin{equation}
+    \text{dp}[i] = \text{\# of combinations using the given coins to reach amount } i, \forall i\ (1 \leq i \leq x). 
+\end{equation}
+
+
+\begin{idea}
+    Here adding $3 + 1$ is the same as adding $1 + 3$, this means that we need to consider the coins in order. So we only go through the set of coins once, thus it's impossible to create two combinations with the same set of coins ordered differently. This is different from the previous problem where we considered every coin at all times.
+\end{idea}
+
+We get a time complexity of $\mathcal{O}(n \cdot x)$.
+
+\begin{minted}{c++}
+void test_case() {
+  ll n, x; cin >> n >> x;
+  vector<ll> c(n);
+  vector<ll> dp(x+1, 0);
+  for (auto &x : c) cin >> x;
+
+  dp[0] = 1;
+
+  for (ll coin : c) {
+    for (ll i = 1; i <= x; i++) {
+      if (i - coin >= 0)
+        dp[i] += (dp[i - coin] % mod);
+    }
+  }
+  
+  cout << (dp[x] % mod) << endl;
+}
+\end{minted}
+
+At every iteration of the outer loop we add a coin to the ones that we are using in order to construct the combinations. That is, at the first iteration we are calculating how to make all the possible amounts $1 \leq i \leq x$ only using the first coin. At the second iteration only using the first two coins, and so forth.
+
+This means that we could have done the same job using a matrix instead of iterating on the same array multiple times by defining
+\begin{equation}
+    \text{dp}[j][i] = \text{\# of combinations to produce a sum of money $i$ using the first $j$ coins}.
+\end{equation}
+
+\subsection{Dice Sum}
+\url{https://atcoder.jp/contests/abc248/tasks/abc248_c} \\ 
+
+We want to construct all the permutations of this kind,
+\begin{equation}
+    (A_1, \dots, A_n)
+\end{equation}
+
+where $A_i \in [1 \dots M]$ and $\sum_{1 \leq i\leq N}{A_i} \leq K$.
+
+What we do is again, as we did in Coin Combinations I, first try to put a number $A_1$ and then construct sum the amount of permutations that have length $n - 1$. 
+
+\begin{minted}{c++}
+#include <bits/stdc++.h>
+using namespace std;
+using ll=long long;
+#define debug(x) cout << #x << " = " << x << '\n';
+#define vdebug(a) cout << #a << " = "; for(auto x: a) cout << x << " "; cout << '\n';
+typedef vector<ll> vi;
+typedef pair<ll, ll> pi;
+
+const ll mod = 998244353LL;
+
+void test_case() {
+  ll N, M, K; cin >> N >> M >> K;
+
+  // dp[i][k] = # of sequences of length i and sum = k.
+  vector<vi> dp(N+1, vi(K+1));
+
+  for (ll k = 1; k <= K; k++) {
+    if (k <= M)
+      dp[1][k] = 1;
+  }
+
+  for (ll i = 1; i <= min(N, K); i++)
+    dp[i][i] = 1;
+  
+  for (ll i = 2; i <= N; i++) { // len
+    for (ll k = i+1; k <= K; k++) { // sum
+
+      for (ll p = 1; p <= M; p++) {
+        if (k - p >= 1)
+          dp[i][k] += (dp[i-1][k - p] % mod);
+      }
+
+    }
+  }
+
+  // sequences of len N where sum <= K
+  cout << accumulate(dp.back().begin(), dp.back().end(), 0LL) % mod << endl;
+}
+
+int32_t main() {
+  ios_base::sync_with_stdio(0); cin.tie(0);
+  test_case();
+}
+\end{minted}
