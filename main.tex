@@ -66,10 +66,7 @@
 \coordinate [below=12cm] (midpoint) at (current page.north);
 \node at (current page.north west)
 {\begin{tikzpicture}[remember picture,overlay]
-\node[anchor=north west,inner sep=0pt] at (0,0) {\includegraphics[width=\paperwidth]{background}}; % Background image
-\draw[anchor=north] (midpoint) node [fill=ocre!30!white,fill opacity=0.6,text opacity=1,inner sep=1cm]{\Huge\centering\bfseries\sffamily\parbox[c][][t]{\paperwidth}{\centering Algorithm writeups\\[3pt] % Book title
-{\Large A collection of problems}\\[20pt] % Subtitle
-{\huge Angelo Voicu}}}; % Author name
+\node[anchor=north west,inner sep=0pt] at (0,0) {\includegraphics[width=\paperwidth]{Pictures/cover.pdf}}; % Background image
 \end{tikzpicture}};
 \end{tikzpicture}
 \vfill
@@ -117,6 +114,8 @@
 
 \include{Chapters/ch1}
 \include{Chapters/ch2}
+\include{Chapters/ch3}
+\include{Chapters/ch4}
 
 
 % %----------------------------------------------------------------------------------------

@@ -1,0 +1,120 @@
+\chapter{Math problems}
+
+\subsection{Count Good Numbers}
+\begin{sloppypar}
+\url{https://codeforces.com/contest/2125/problem/C}
+\end{sloppypar}
+
+We define $x$ good iff its prime factors have at least two digits. That is, $x$ good $ \iff x $ is not divisible by 2, 3, 5, 7. We let $G$ be the set of all good numbers.
+
+\begin{equation}
+    G = \{n \in \mathbb{N}\ |\ n \text{ is not divisible by } 2, 3, 5, 7 \}.
+\end{equation}
+
+We want to find the amount of good numbers in a range $[l, r]$, endpoints included.
+
+\begin{obs}
+    If we have a number $k$ not divisible by 2, then $k + 2$ will also not be divisible by 2.
+    This is true in general. \\
+    \begin{equation*}
+        z \nmid x \implies z \nmid (x + z), \quad (z, x \in \mathbb{N})
+    \end{equation*}
+\end{obs}
+
+For this reason, we let $L = 2 \cdot 3 \cdot 5 \cdot 7$ be the product of all the primes we don't want.
+\begin{obs}
+    We observe,
+    \begin{equation}
+        x \text{ is good} \implies x + L \text{ is good} 
+    \end{equation}
+
+    this because $x + L$ would not be divisible by 2, 3, 5, 7. So there exists a periodicity in good numbers.
+\end{obs}
+
+\begin{idea}
+    To compute the amount of good numbers in $[l, r]$ we compute the amount in $[0, r]$ and $[0, l-1]$ and then subtract the two results. This can be done by computing the amount of good numbers in the range $[1, 210]$ naively and then multiplying by how much times the range is repeated. Finally we calculate how many good numbers there are in the remainder of our range.
+\end{idea}
+
+\begin{minted}{c++}
+void test_case() {
+  ll l, r; cin >> l >> r;
+  const ll L = 210;
+
+  auto good = [](ll x) {
+    return !(x % 2 == 0 || x % 3 == 0 || x % 5 == 0 || x % 7 == 0);
+  };
+
+  auto get_naive = [&](ll x) {
+    ll ans = 0;
+    for (ll i = 0; i < x; i++) {
+      if (good(i)) ans++;
+    }
+    
+    return ans;
+  };
+
+  auto get = [&](ll r) {
+    return (r / L) * get_naive(L) + get_naive(r % L);
+  };
+
+  cout << get(r+1) - get(l) << endl;
+}
+\end{minted}
+
+\section{C. Make it Equal}
+\begin{sloppypar}
+\url{https://codeforces.com/contest/2131/problem/C}
+\end{sloppypar}
+
+\begin{problem}
+Given two multisets $S$ and $T$ of size $n$ and a positive integer $k$, you may perform the following operations any number (possibily zero) of times on $S$:
+
+\begin{itemize}
+    \item Select an element $x$ in $S$, and remove one occurrence of $x$ in $S$. Then, either insert $x+k$ into S, or insert $|x-k|$ into S.
+\end{itemize}
+
+Determine if it is possible to make $S$ equal to $T$. Two multisets S and T are equal if every element appears the same number of times in S and T.
+\end{problem}
+
+\begin{obs}
+    We observe that the two operations correspond to:
+    \begin{itemize}
+        \item $x > k \implies |x - k| = x \bmod k$  
+        \item $x < k \implies |x - k| = -x \bmod k$  
+    \end{itemize}
+\end{obs}
+
+So this means that using the above operation
+\begin{equation}
+    \text{Can transform a number $x$ into $y \iff $}
+    \begin{array}{c}
+        x \equiv y \pmod k \\
+        -x \equiv y \pmod k
+    \end{array}
+\end{equation}
+
+So this means that starting from a number $x$ we can add $k \cdot l\ (l\in \mathbb{Z})$, obtaining an arbitrarily big number. Or we can either apply the modulo $k$ operation (1st op.) or the $-x \bmod k$ operation (2nd op.). So, what we do to see if $S$ can be transformed into $T$ is reducing all the elements of $S$ and $T$. We ask ourselves: what is the minimum number that $x$ be transformed to using the two above operations? It is
+
+\begin{equation}
+    \min(x \bmod k, (((-x + k) \bmod k) + k) \bmod k)
+\end{equation}
+
+\begin{minted}{c++}
+void test_case() {
+  ll n, k; cin >> n >> k;
+  vi s(n), t(n);
+  for (ll &x : s) cin >> x;
+  for (ll &x : t) cin >> x;
+ 
+  for (ll &x : s)
+    x = min(x % k, (((k - x) % k) + k) % k);
+
+  for (ll &x : t)
+    x = min(x % k, (((k - x) % k) + k) % k);
+
+  sort(s.begin(), s.end());
+  sort(t.begin(), t.end());
+  
+  cout << (equal(s.begin(), s.end(), t.begin(), t.end()) ? "YES" : "NO") << endl;
+}
+\end{minted}

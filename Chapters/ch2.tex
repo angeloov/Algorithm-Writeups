@@ -317,7 +317,7 @@ We want to construct all the permutations of this kind,
 
 where $A_i \in [1 \dots M]$ and $\sum_{1 \leq i\leq N}{A_i} \leq K$.
 
-What we do is again, as we did in Coin Combinations I, first try to put a number $A_1$ and then construct sum the amount of permutations that have length $n - 1$. 
+What we do is again, as we did in Coin Combinations I, first try to place $A_1$ in the beginning of the permutation and then construct the sum of the amount of permutations that have length $n - 1$. 
 
 \begin{minted}{c++}
 #include <bits/stdc++.h>
@@ -363,4 +363,190 @@ int32_t main() {
   ios_base::sync_with_stdio(0); cin.tie(0);
   test_case();
 }
+\end{minted}
+
+\section{Speeding up with Segment Trees}
+
+\subsection{A - Card game}
+\url{https://codeforces.com/gym/104945/problem/A}
+
+Consider a deck of \( N \) cards with suits \( \{S, W, E, R, C\} \). 
+Our goal is to reorder the deck so that the cards are sorted within each suit 
+(e.g., \( S_1, S_2, \ldots, S_N \)), and the suits appear in any arbitrary order, 
+except that the suit \( C \) must always be placed last.
+We can rearrange the cards by choosing one and putting it in the middle of two cards, at the beginning, or at the end of the deck. The problem asks: what's the minimum number of moves we can make?
+
+\begin{obs}
+    Consider you have a deck of cards in your hand. You'll have cards already ordered, and others which are not. Those ones already ordered stay there, while only the not ordered cards will be moved.
+\end{obs}
+
+The number of cards already in order is the LIS (Longest Increasing Subsequence). Therefore, the number of cards that have to move is $N - \text{LIS}(a)$ where a is the array of cards.
+We can compute this with a $O(n^2)$ complexity.
+
+\begin{minted}{c++}
+void test_case() {
+  ll n; cin >> n;
+  vector<pair<char, ll>> d(n);
+
+  for (auto &x : d) {
+    char c; cin >> c;
+    ll b; cin >> b;
+
+    x.first = c, x.second = b;
+  }
+
+  string str = "SWER";
+
+  auto offset = [&](char c) {
+    if (c == 'C') return 4 * n;
+    return (ll)str.find(c) * n;
+  };
+
+  auto access = [&](ll i) {
+    return offset(d[i].first) + d[i].second;
+  };
+
+  ll mxlis = 0;
+  for (ll k = 0; k < 24; k++) { // Traverse all permutations of "SWER"
+    vi dp(n, 1);
+    
+    // LIS (Longest Increasing Subsequence) calculation
+    // dp[i] = longest increasing subsequence if we consider
+    //         a[i] as the last element of the sequence.
+    for (ll i = 1; i < n; i++) {
+      for (ll j = 0; j < i; j++) {
+        // This is a conversion made to preserve the total ordering defined by the problem
+        ll aj = offset(d[j].first) + d[j].second;
+        ll ai = offset(d[i].first) + d[i].second;
+      
+        if (aj < ai)
+          dp[i] = max(dp[i], dp[j] + 1LL);
+      }
+    }
+
+    ll lis = *max_element(dp.begin(), dp.end());
+    next_permutation(str.begin(), str.end());
+    mxlis = max(mxlis, lis);
+  }
+
+  cout << n - mxlis << "\n";
+}
+\end{minted}
+
+But this solution, is too slow. Now, ask yourself: when constructing a LIS what are the values that are gonna be before a given element of the sequence $a_i$? The answer is: all the values in $[0 \dots a_i -1 ]$.
+
+What we can do is use a segment tree to speed things up where its array of leaves maps $\text{leaves}[a[i]]$ to \textbf{the maximum LIS obtainable by having $a[i]$ as the last element}. Therefore,
+\begin{equation}
+    \text{dp}[i] = \text{tree.query}(0 , a[i] -1) + 1
+\end{equation}
+and every time we compute $\text{dp}[i]$ we also update the value of the maximum LIS obtainable by having $\text{a}[i]$ as the last element of the sequence, so we have to update the array of leaves.
+
+\begin{minted}{c++}
+#include <bits/stdc++.h>
+using namespace std;
+using ll=long long;
+#define debug(x) cout << #x << " = " << x << '\n';
+#define vdebug(a) cout << #a << " = "; for(auto x: a) cout << x << " "; cout << '\n';
+typedef vector<ll> vi;
+typedef pair<ll, ll> pi;
+
+class SegmentTree {
+private:
+  vector<ll> tree;
+  ll n;
+
+public:
+  SegmentTree(ll size) {
+    n = size;
+    tree.resize(2 * n, 0);
+  }
+
+  // Query maximum in range [left, right] iteratively
+  ll query(ll left, ll right) {
+    left += n;  // Shift to leaf nodes
+    right += n;
+    ll result = 0;
+        
+    while (left <= right) {
+      if (left % 2 == 1) {  // left is a right child
+        result = max(result, tree[left]);
+        left++;
+      }
+      if (right % 2 == 0) {  // right is a left child
+        result = max(result, tree[right]);
+        right--;
+      }
+      left /= 2;   // Move to parent
+      right /= 2;
+    }
+        
+    return result;
+  }
+
+  // Update value at position idx iteratively
+  void update(ll idx, ll val) {
+    idx += n;  // Start at leaf
+    tree[idx] = max(tree[idx], val);  // Update with maximum value
+        
+    // Update parents
+    while (idx > 1) {
+      idx /= 2;
+      tree[idx] = max(tree[idx*2], tree[idx*2+1]);
+    }
+  }
+};
+
+void test_case() {
+  ll n; cin >> n;
+  vector<pair<char, ll>> d(n);
+
+  for (auto &x : d) {
+    char c; cin >> c;
+    ll b; cin >> b;
+
+    x.first = c, x.second = b;
+  }
+
+  string str = "SWER";
+
+  ll mxlis = 0;
+  for (ll k = 0; k < 24; k++) { // Traverse all permutations of "SWER"
+    vi a(n);
+    ll mxelem = 0LL;
+    for (ll i = 0 ; i < n; i++) {
+      // Calculation of a[i] offsetted based on letter {S, W, E, R, C}
+      ll offset;
+      if (d[i].first == 'C') offset = 4 * n;
+      else offset = (ll)str.find(d[i].first) * n;
+
+      a[i] = offset + d[i].second;
+      mxelem = max(mxelem, a[i]);
+    }
+
+    vi dp(n, 1);
+    SegmentTree tree(mxelem + 1);
+
+    // LIS (Longest Increasing Subsequence) calculation.
+    // dp[i] = longest increasing subsequence if we consider
+    //         a[i] as the last element of the sequence.
+    for (ll i = 0; i < n; i++) {
+      dp[i] = tree.query(0, a[i] - 1) + 1;
+
+      ll last_value = tree.query(a[i], a[i]);
+      tree.update(a[i], max(last_value, dp[i]));
+    }
+    
+    ll lis = *max_element(dp.begin(), dp.end());
+    next_permutation(str.begin(), str.end());
+    mxlis = max(mxlis, lis);
+  }
+
+  cout << n - mxlis << "\n";
+}
+
+int32_t main() {
+  ios_base::sync_with_stdio(0); cin.tie(0);
+  test_case();
+}
+    
 \end{minted}

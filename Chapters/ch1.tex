@@ -460,6 +460,150 @@ int32_t main() {
 }
 \end{minted}
 
+\subsection{Swapping Brackets}
+\url{https://training.olinfo.it/task/ois_bracketswap}
+
+We first begin taking strings and playing around swapping parentheses. We keep a count and decrease it when we encounter a closing parenthesis, and increase it when we find an open one. We observe that,
+
+\begin{obs}
+    The counter becomes negative $\iff$ $s$ is invalid. \\
+    And obviously, \\
+    s is valid $\iff$ The counter is always non-negative.
+\end{obs}
+
+From here we also observe that if we have a certain count $x$, and we have a closing parenthesis after the count will become $x-1$, if we have an open instead the count will be $x + 1$. If we swap the two parentheses at indexes $i, j$ it means that all the counts between $i$ and $j$ will be increased by $(x + 1) - (x - 1)  = 2$. Draw a diagram where you substitute parenthesis with arrows (up and down) and it will be clear why.
+\\
+Let's call $count_k$ the count we have up until index $k$. The number of steps to solve the problem is just,
+\begin{equation}
+    \Bigl\lfloor \frac{ (- \min_{k}\{count_k\}) + 1}{2} \Bigr\rfloor
+\end{equation}
+
+The implementation of this formula is in the \texttt{steps} function.
+
+\begin{minted}{c++}
+#include <bits/stdc++.h>
+using namespace std;
+using ll=long long;
+#define debug(x) cout << #x << " = " << x << '\n';
+#define vdebug(a) cout << #a << " = "; for(auto x: a) cout << x << " "; cout << '\n';
+typedef vector<ll> vi;
+typedef pair<ll, ll> pi;
+
+ll steps(string s, ll n) {
+  ll ret = LLONG_MAX;
+  ll counter = 0;
+
+  for (ll i = 0; i < n; i++){
+    if (s[i] == '(') counter++;
+    else counter--;
+
+    ret = min(ret, counter);
+  }
+
+  return ((-(ret) + 1) / 2);
+}
+
+void test_case() {
+  ll n; cin >> n;
+  string s; cin >> s;
+
+  stack<ll> opening; // indexes
+
+  for (ll i = 0; i < n; i++) {
+    if (s[i] == '(') opening.push(i);
+  }
+
+  ll t = steps(s, n);
+  cout << t << "\n";
+
+  for (ll i = 0; i < n / 2 && t > 0; i++) {
+    if (s[i] == ')') {
+      ll opidx = opening.top();
+      opening.pop();
+
+      swap(s[opidx], s[i]);
+      cout << i << " " << opidx << "\n";
+      t--;
+    }
+  }
+}
+
+int32_t main() { test_case(); }
+\end{minted}
+
+\subsection{D. Temple Architecture}
+\url{https://codeforces.com/gym/105677/problem/D} \\
+
+\begin{problem}
+    For each element in a list $H$, find the nearest greater element.
+\end{problem}
+
+The problem can be solved using a greedy algorithm that first computes the nearest greater element considering only the elements to the left of a given $H_i$ and then considering only the elements to the right. 
+Let's consider the first part. We use a stack and we range $i = 0..n-1$ we remove an element from the stack when $H_j \leq H_i$ because if after $H_i$ we have $H_{i+1} < H_i$ then the nearest greater element is $H_i$, otherwise if $H_{i+1} > H_i$ then for sure those $H_j \leq H_i$ were useless in determining the nearest greater element for $H_{i+1}$. A similar thing is done for the right side. Then we compute the answer as shown below.
+
+\begin{minted}{c++}
+#include <bits/stdc++.h>
+using namespace std;
+using ll=long long;
+#define debug(x) cout << #x << " = " << x << '\n';
+#define vdebug(a) cout << #a << " = "; for(auto x: a) cout << x << " "; cout << '\n';
+typedef vector<ll> vi;
+typedef pair<ll, ll> pi;
+
+void test_case() {
+  ll n; cin >> n;
+  vi a(n);
+  vi left(n, LLONG_MAX), right(n, LLONG_MAX);
+  for (ll &x : a) cin >> x;
+
+  // Find left boundaries (previous greater element)
+  stack<ll> s;
+  s.push(0);
+
+  for (ll i = 1; i < n; i++) {
+    while (s.size() > 0 && a[s.top()] <= a[i])
+      s.pop();
+
+    if (s.size() > 0)
+      left[i] = s.top();
+    s.push(i);
+  }
+
+  // Clear stack for right boundaries
+  while (!s.empty()) s.pop();
+  
+  // Find right boundaries (next greater element)
+  s.push(n - 1);
+  for (ll i = n - 2; i >= 0; i--) {
+    while (s.size() > 0 && a[s.top()] <= a[i])
+      s.pop();
+
+    if (s.size() > 0)
+      right[i] = s.top();
+    s.push(i);
+  }
+
+  ll ans = 0;
+  ll p = max_element(a.begin(), a.end()) - a.begin();
+  for (ll i = 0; i < n; i++) {
+    if (i != p) {
+      ll x = min(left[i] != LLONG_MAX ? (i - left[i]) : LLONG_MAX, 
+                 right[i] != LLONG_MAX ? (right[i] - i) : LLONG_MAX);
+
+      ans += x;
+    }
+  }
+
+  vdebug(right)
+  
+  cout << ans << "\n";
+}
+
+int32_t main() {
+  ios_base::sync_with_stdio(0); cin.tie(0);
+  test_case();
+}   
+\end{minted}
 
 
 \section{Binary search}
@@ -631,5 +775,157 @@ void test_case() {
 int32_t main() {
   ios_base::sync_with_stdio(0); cin.tie(0);
   test_case();
+}
+\end{minted}
+
+\subsection{D. Beautiful Permutation - Searching for only one endpoint}
+\url{https://codeforces.com/contest/2162/problem/D}
+
+Here what we can do is a binary search where we calculate $p - a$ in the range $[l, r]$ thus doing,
+\begin{align*}
+    &\text{query}(1, 1, m) \\ 
+    &\text{query}(1, m+1, n) \\ 
+    &\text{query}(2, 1, m) \\
+    &\text{query}(2, m+1, n) \\ 
+\end{align*}
+
+but this is too slow taking $4 \cdot \lceil \log_2(n) \rceil > 40$ operations.
+
+Another approach is looking only for $l$ by comparing $\text{query}(1, 1, m)$ and $\text{query}(2, 1, m)$. And then calculating r as $ r = l + \text{\# of 1s}$.
+
+\begin{minted}{c++}
+void test_case() {
+  ll n; cin >> n;
+  
+  auto query = [&](ll type, ll l, ll r) -> ll {
+    cout << type << " " << l << " " << r << endl;
+    ll x; cin >> x;
+    return x;
+  }; 
+  
+  ll sum = query(2, 1, n) - ((n * (n + 1)) / 2);
+
+  ll l = 1, r = n;
+
+  while (l < r) {
+    ll m = (l + r) / 2;
+    ll a = query(1, 1, m), b = query(2, 1, m);
+
+    if (a < b) r = m;
+    else l = m + 1;
+  }
+  
+  cout << "! " << l << " " << l + sum - 1 << endl;
+}
+\end{minted}
+
+\section{Minimax problems with binary search}
+Minimax problems are those where we have to minimize a maximum value or maximize a minimum value. Let's consider a classical problem. \\ 
+
+\begin{problem}
+    Given an array $a$ of positive integers and an integer $k$, split the array into $k$ contiguous subarrays. Your goal is to minimize the largest sum among these subarrays.
+\end{problem}
+
+So here we have to \textbf{minimize} the \textbf{maximum} sum of $b^j$ subarray of $a$.
+
+\begin{minted}{c++}
+void test_case() {
+  ll n, k; cin >> n >> k;
+  vi nums(n);
+  for (ll &x : nums) cin >> x;
+  
+  auto check = [&](ll x) -> bool {
+    ll i = 0;
+    ll currk = 0;
+
+    while (i < n) {
+      ll currsum = 0;
+      while (currsum < x && i < n) {
+        currsum += nums[i];
+        if (currsum <= x) i++;
+      }
+
+      while (nums[i] == 0 && i < n) i++;
+      
+      currk++;
+    }
+
+    return currk <= k;
+  };
+
+  ll l = *max_element(nums.begin(), nums.end()), 
+     r = accumulate(nums.begin(), nums.end(), 0LL);
+  
+  while (l <= r) {
+    ll mid = (l + r) / 2;
+
+    if (check(mid)) {
+      r = mid - 1;
+    } else {
+      l = mid + 1;
+    }
+  }
+
+  cout << r + 1 << endl;
+}
+\end{minted}
+
+
+
+\subsection{E. Min Max MEX}
+\begin{sloppypar}
+\url{https://codeforces.com/problemset/problem/2093/E}
+\end{sloppypar}
+
+\begin{minted}{c++} 
+bool seen[200005];
+
+void test_case() {
+  ll n, k; cin >> n >> k;
+  vi a(n);
+  for (ll &x : a) cin >> x;
+
+  memset(seen, 0, 200005);
+
+  auto check = [&](ll x) -> bool {
+    ll subarrays = 0;
+    ll i = 0;
+    
+    while (i < n) {
+      ll count_seen = 0;
+
+      while (i < n) {
+        if (a[i] < x && seen[a[i]] == 0) {
+          seen[a[i]] = 1;
+          count_seen++;
+        }
+
+        i++;
+        if (count_seen == x) {
+          subarrays++;
+          break;
+        }
+      }
+
+      memset(seen, 0, min(x + 1, (ll) 2e5) * sizeof(bool));
+    }
+    
+    memset(seen, 0, min(x + 1, (ll) 2e5) * sizeof(bool));
+    return subarrays >= k;
+  };
+
+  
+  ll l = 0LL, r = 2e5;
+  while (l <= r) {
+    ll mid = (l + r) / 2;
+
+    if (check(mid)) {
+      l = mid + 1;
+    } else {
+      r = mid - 1;
+    }
+  }
+
+  cout << l - 1 << endl;
 }
 \end{minted}
