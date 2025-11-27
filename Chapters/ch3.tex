@@ -1,5 +1,48 @@
 \chapter{Math problems}
 
+\section{Modular arithmetic}
+We state a theorem that's really useful.
+    
+\begin{theorem}
+ Let $n > 1$ and let $a, b, c, d \in \mathbb{Z}$. Then
+
+\begin{enumerate}
+    \item[(a)] If $a = b$ then $a \equiv b \pmod{n}$.
+    \item[(b)] $a \equiv a \pmod{n}$.
+    \item[(c)] If $a \equiv b \pmod{n}$ then $b \equiv a \pmod{n}$.
+    \item[(d)] If $a \equiv b \pmod{n}$ and $b \equiv c \pmod{n}$ then $a \equiv c \pmod{n}$.
+    \item[(e)] If $a \equiv b \pmod{n}$ and $c \equiv d \pmod{n}$ then $a + c \equiv b + d \pmod{n}$ and $ac \equiv bd \pmod{n}$.
+\end{enumerate}
+\end{theorem}
+
+This shows us right away the principal properties in modular arithmetic. It also suggests that if $a \equiv b \pmod{n}$ then $a^2 \equiv b^2 \pmod{n}$ and more generally $a^k \equiv b^k \pmod{n}$. 
+
+When we state a modular equivalence mod $n$ we can treat all the numbers as belonging to the set 
+\begin{equation}
+    \{0, 1, \dots, n - 1\}. 
+\end{equation}
+
+\begin{example}
+For all $n \in \mathbb{Z}$, $7 \mid n^3$ or $7 \mid n^3 \pm 1$.
+    
+\quad The statement implies $n^3 \equiv 0, 1, -1 \pmod{7}$. The 7 congruences classes mod 7 may be represented by $\{-3, -2, -1, 0, 1, 2, 3\}$ since $4 \equiv -3$, $5 \equiv -2$, $6 \equiv -1$. That is, we are in the realm of numbers modulo 7, i.e. we can consider only a subset of numbers and work with them because they are equivalent to other numbers we could've chosen.
+
+\begin{center}
+\renewcommand{\arraystretch}{1.2} % Adds slight padding to rows for readability
+\begin{tabular}{|c|c|c|c|c|c|c|c|}
+\hline
+$n$ & $-3$ & $-2$ & $-1$ & $0$ & $1$ & $2$ & $3$ \\
+\hline
+$n^3$ & $-27 \equiv 1$ & $-8 \equiv -1$ & $-1$ & $0$ & $1$ & $8 \equiv 1$ & $27 \equiv -1$ \\
+\hline
+\end{tabular}
+\end{center}
+
+\noindent Thus $n^3 \equiv 0$ or $\pm 1 \pmod 7$ for every $n$. 
+\end{example}
+
+
+\section{Problems}
 \subsection{Count Good Numbers}
 \begin{sloppypar}
 \url{https://codeforces.com/contest/2125/problem/C}

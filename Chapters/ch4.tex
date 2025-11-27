@@ -1,20 +1,99 @@
-\chapter{Properties and tips}
+\chapter{Graph problems}
 
-\section{Tips and tricks}
-\begin{itemize}
-    \item Sometimes a technique could be suggested in the text of the problem, like ``find the minimal possible maximum value in $a$'' could make you think that binary search has to be used. While sometimes a simple greedy solution can be found.
-\end{itemize}
+\subsection{Shortest Path}
+\url{https://codeforces.com/problemset/problem/59/E} 
 
-\section{Properties of XOR}
-\begin{flushleft}
-$a \oplus a = 0$\\
-$a \oplus 0 = a$\\
-$a \oplus 1 = \sim a$, where $\sim$ is bit complement.\\
-$a \oplus \sim a = 1$\\
-$a \oplus b = b \oplus a$ (commutativity)\\
-$a \oplus (b \oplus c) = (a \oplus b) \oplus c$ (associativity)\\
-$a \oplus a \oplus a = a$\\
-If $a \oplus b = c$, then $c \oplus b = a$ and $c \oplus a = b$.
-\end{flushleft}
+\begin{minted}{c++}
+#include <bits/stdc++.h>
+using namespace std;
+using ll=long long;
+#define debug(x) cout << #x << " = " << x << '\n';
+#define vdebug(a) cout << #a << " = "; for(auto x: a) cout << x << " "; cout << '\n';
+typedef vector<ll> vi;
+typedef pair<ll, ll> pi;
 
+void test_case() {
+  ll n, m, k; cin >> n >> m >> k;
+  vector<vi> adj(n+1);
+  set<tuple<ll,ll,ll>> banned;
+  set<pi> visited;
 
+  for (ll i = 0; i < m; i++) {
+    ll x, y; cin >> x >> y;
+    adj[x].push_back(y);
+    adj[y].push_back(x);
+  }
+
+  for (ll i = 0; i < k; i++) {
+    ll a, b, c; cin >> a >> b >> c;
+    banned.insert({c, b, a});
+  }
+
+  unordered_map<ll, unordered_map<ll, tuple<ll, ll, ll>>> prev;
+  vi dist(n+1, LLONG_MAX);
+  dist[1] = 0;
+
+  queue<tuple<ll, ll, ll>> q;
+  q.push({1, 0, 0});
+
+  tuple<ll, ll, ll> trstart;
+
+  while (!q.empty()) {
+    tuple<ll, ll, ll> triplet = q.front();
+    q.pop();
+    ll node = get<0>(triplet);
+    
+    if (node == n) {
+      trstart = triplet;
+      break;
+    }
+
+    for (ll &neigh : adj[node]) {
+      if (visited.count({neigh, node})) continue;
+      
+      tuple<ll, ll, ll> newtriplet = {neigh, node, get<1>(triplet)};
+      
+      if (banned.count(newtriplet) == 0) {
+        prev[neigh][node] = triplet;
+        q.push(newtriplet);
+        visited.insert({neigh, node});
+      }
+    }
+  }
+
+  if (get<0>(trstart) == 0) {
+    cout << "-1\n";
+    return;
+  }
+
+  tuple<ll, ll, ll> t = trstart;
+  vi ans;
+  ans.reserve(n);
+  ans.push_back(get<0>(t));
+  ans.push_back(get<1>(t));
+
+  while (get<0>(t) != 0 && get<1>(t) != 0) {
+    if (get<2>(t) != 0) 
+      ans.push_back(get<2>(t));
+
+    ll curr = get<0>(t);
+    ll prev_node = get<1>(t);
+    t = prev[curr][prev_node];
+  }
+
+  if (ans.back() != 1) {
+    cout << "-1\n";
+    return;
+  }
+
+  cout << ans.size() - 1 << "\n";
+  for (ll i = ans.size() - 1; i >= 0; i--) 
+    cout << ans[i] << " ";
+  cout << "\n";
+}
+
+int32_t main() {
+  ios_base::sync_with_stdio(0); cin.tie(0);
+  test_case();
+}   
+\end{minted}

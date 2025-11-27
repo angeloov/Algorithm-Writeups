@@ -1,6 +1,8 @@
 \chapterimage{chapter_head_1.pdf} % Chapter heading image
 \chapter{Dynamic programming}
 
+\section{Introductory problems}
+
 \subsection{A. Gellyfish and Flaming peony}
 \begin{sloppypar}
 \url{https://codeforces.com/problemset/problem/2115/A} 
@@ -222,6 +224,56 @@ void test_case() {
 }
 \end{minted}
 
+
+\subsection{Rectangle cutting}
+\url{https://cses.fi/problemset/task/1744} \\
+
+\begin{problem}
+    Given an $a \times b$ rectangle, your task is to cut it into squares. On each move you can select a rectangle and cut it into two rectangles in such a way that all side lengths remain integers. What is the minimum possible number of moves? \\
+\end{problem}
+
+This problem is really similar to the classical rod cutting problem. In that problem, by having a rod of length $n$, at each step we had $n - 1$ places we could make a cut; so we had $n - 1$ choices. 
+Here instead we have a rectangle (not a line) but the reasoning is similar. We observe that we can either cut horizontally or vertically. So we can make $a - 1$ cuts horizontally and $b - 1$ cuts vertically. So in total, one can make $(a - 1) + (b - 1) = a + b - 2$ possible choices.
+The idea is to have a 2D array where we store at each position dp$[x][y]$ the minimum of doing one of the $a + b - 2$ cuts by checking each of them.
+
+
+\begin{minted}{c++}
+#define MAXLEN 501
+
+void test_case() {
+  ll a, b; cin >> a >> b;
+
+  if (a < b) swap(a, b);
+
+  ll dp[MAXLEN][MAXLEN];
+  for (ll i = 1; i <= a; i++) {
+    for (ll j = 1; j <= b; j++) {
+      if (i == j) dp[i][j] = 0;
+      else dp[i][j] = 1e9;
+    }
+  }
+
+  for (ll i = 1; i <= a; i++) {
+    for (ll j = 1; j <= b; j++) {
+      for (ll k = 1; k <= a; k++) {
+        if (j - k > 0)
+          dp[i][j] = min(dp[i][j], dp[i][k] + dp[i][j - k] + 1);
+      }
+
+      for (ll k = 1; k <= b; k++) {
+        if (i - k > 0)
+          dp[i][j] = min(dp[i][j], dp[k][j] + dp[i - k][j] + 1);
+      }
+    }
+  }
+  
+  cout << dp[a][b] << "\n";
+}
+\end{minted}
+
+
+%%%%%%%%%%%%
+
 \section{Constructing permutations and combinations}
 
 \subsection{Coin combinations I \&\& II: swapping two loops can change the result!}
@@ -275,7 +327,7 @@ The approach we take is to select a coin $c$, and from here compute
 
 
 \begin{idea}
-    Here adding $3 + 1$ is the same as adding $1 + 3$, this means that we need to consider the coins in order. So we only go through the set of coins once, thus it's impossible to create two combinations with the same set of coins ordered differently. This is different from the previous problem where we considered every coin at all times.
+    Here adding $3 + 1$ is the same as adding $1 + 3$, this means that we need to consider the coins in order. So we only go through the set of coins once, thus it's impossible to create two combinations with the same set of coins ordered differently. This is different from the previous problem where we considered every coin at each iteration.
 \end{idea}
 
 We get a time complexity of $\mathcal{O}(n \cdot x)$.
